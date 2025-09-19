@@ -1,0 +1,9 @@
+# Node.js artifacts
+compositor/node_modules/
+compositor/dist/
+
+# CMake build output
+obs-plugin/build/
+
+# macOS
+.DS_Store
