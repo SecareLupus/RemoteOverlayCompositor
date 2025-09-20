@@ -17,6 +17,9 @@ RemoteControlSession::RemoteControlSession(std::shared_ptr<PluginCoordinator> co
     coordinator_->set_visibility_callback(
         [this](const std::string& layer_id, bool visible) { send_layer_visibility(layer_id, visible); });
   }
+  // TODO: Teach the coordinator about server-authoritative layer creation so
+  //       we can present confirmation flows instead of blindly mirroring any
+  //       new OBS scene items.
 }
 
 void RemoteControlSession::set_log_sink(std::function<void(const std::string&)> sink) {
@@ -69,6 +72,8 @@ void RemoteControlSession::send_hello() {
   hello.version = config_.version;
   hello.capabilities = config_.capabilities;
   hello.auth_token = config_.auth_token;
+  // TODO: Attach pending WebRTC fallback negotiation hints (e.g., desired SDP
+  //       role) once the compositor exposes the required signalling fields.
   if (transport_) {
     transport_->send(serialize_hello(hello));
   }
@@ -107,8 +112,6 @@ void RemoteControlSession::process_message(const ControlOutboundMessage& message
           handle_preset_upsert(payload);
         } else if constexpr (std::is_same_v<T, PresetRemovedNotice>) {
           handle_preset_removed(payload);
-        } else if constexpr (std::is_same_v<T, PresetAppliedNotice>) {
-          handle_preset_applied(payload);
         } else if constexpr (std::is_same_v<T, ErrorNotice>) {
           handle_error(payload);
         }
@@ -132,6 +135,9 @@ void RemoteControlSession::handle_welcome(const WelcomeEnvelope& welcome) {
   for (const auto& preset : welcome.presets) {
     presets_[preset.id] = preset;
   }
+  // TODO: Request full preset definitions after connect if the handshake keeps
+  //       shipping only summaries so preset UIs can hydrate visibility maps on
+  //       demand.
 }
 
 void RemoteControlSession::handle_layer_state(const LayerStateUpdate& update) {
@@ -179,10 +185,6 @@ void RemoteControlSession::handle_preset_removed(const PresetRemovedNotice& noti
   log("Preset removed: " + notice.preset_id);
 }
 
-void RemoteControlSession::handle_preset_applied(const PresetAppliedNotice& notice) {
-  log("Preset applied: " + notice.preset_id + " changes=" + std::to_string(notice.changes.size()));
-}
-
 void RemoteControlSession::handle_error(const ErrorNotice& notice) {
   log("Server error: " + notice.code + " - " + notice.message);
 }
@@ -192,6 +194,9 @@ void RemoteControlSession::send_layer_visibility(const std::string& layer_id, bo
     return;
   }
   local_revision_ = std::max(local_revision_, state_store_ ? state_store_->revision() : 0) + 1;
+  // TODO: Reconcile this optimistic revision bump with the compositor's
+  //       monotonic counter once the global revision contract is finalised so
+  //       concurrent writers cannot desync.
   LayerSetVisibleCommand command;
   command.layer_id = layer_id;
   command.visible = visible;

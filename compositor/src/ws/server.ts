@@ -17,7 +17,6 @@ import {
   LayerBulkStateMessage,
   LayerSetVisibleMessage,
   OutboundMessage,
-  PresetAppliedMessage,
   PresetApplyMessage,
   PresetSummary,
   WelcomeMessage,
@@ -34,6 +33,10 @@ export interface ControlServerOptions {
   authToken?: string;
   acceptedVersions?: string[];
 }
+
+// TODO: Extend the control server options with a WebRTC credential payload so
+//       we can surface SDP offers/answers over the control channel when NDI is
+//       unavailable.
 
 interface ClientContext {
   socket: WebSocket;
@@ -135,6 +138,9 @@ export class ControlServer extends EventEmitter {
       return;
     }
     if (this.options.authToken && hello.auth !== this.options.authToken) {
+      // TODO: Emit richer authentication diagnostics (e.g., structured error
+      //       events) that the OBS plugin can surface to users when bearer
+      //       tokens are missing or invalid.
       this.send(context.socket, { op: 'error', code: 'INVALID_AUTH', message: 'Authentication failed.' });
       context.socket.close();
       return;
@@ -200,25 +206,20 @@ export class ControlServer extends EventEmitter {
   }
 
   private handlePresetApply(context: ClientContext, message: PresetApplyMessage): void {
-    const result = this.state.applyPreset(message.presetId, context.hello?.client);
+    const requester = context.hello?.client ?? 'unknown';
+    const result = this.state.applyPreset(message.presetId, requester);
     if (!result) {
-      this.send(context.socket, {
-        op: 'error',
-        code: 'UNKNOWN_PRESET',
-        message: `Preset ${message.presetId} not found`,
-      });
+      console.warn(`[control] preset ${message.presetId} not found for requester ${requester}`);
+      // TODO: Return an explicit preset application failure payload once the
+      //       client UX is ready to differentiate validation errors.
       return;
     }
-    const response: PresetAppliedMessage = {
-      op: 'preset.applied',
-      presetId: message.presetId,
-      changes: result.changes.map((change) => ({
-        layerId: change.layerId,
-        visible: change.visible,
-        rev: change.revision,
-      })),
-    };
-    this.send(context.socket, response);
+    console.log(
+      `[control] preset ${message.presetId} applied by ${requester} with ${result.changes.length} changes`,
+    );
+    // TODO: Route preset application outcomes to a diagnostics sink beyond
+    //       stdout so operators have persistent visibility into partial apply
+    //       failures.
   }
 
   private parseMessage(data: WebSocket.RawData): InboundMessage | undefined {

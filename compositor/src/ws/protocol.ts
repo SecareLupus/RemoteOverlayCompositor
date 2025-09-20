@@ -15,6 +15,11 @@ export interface PresetSummary {
   description?: string;
 }
 
+// TODO: Evaluate whether the welcome handshake should return complete preset
+//       visibility maps or only lightweight metadata, and benchmark large
+//       preset payloads so we can decide if an incremental follow-up sync is
+//       required.
+
 export interface WelcomeMessage {
   op: 'welcome';
   server: 'compositor';
@@ -69,18 +74,6 @@ export interface PresetApplyMessage {
   presetId: string;
 }
 
-export interface PresetAppliedChange {
-  layerId: string;
-  visible: boolean;
-  rev: number;
-}
-
-export interface PresetAppliedMessage {
-  op: 'preset.applied';
-  presetId: string;
-  changes: PresetAppliedChange[];
-}
-
 export interface PresetUpsertMessage {
   op: 'preset.upsert';
   preset: PresetDefinition;
@@ -107,7 +100,6 @@ export type OutboundMessage =
   | LayerUpsertMessage
   | LayerRemovedMessage
   | LayerBulkStateMessage
-  | PresetAppliedMessage
   | PresetUpsertMessage
   | PresetRemovedMessage
   | ErrorMessage;

@@ -14,12 +14,14 @@
 - Remote state store enhancements for upsert/remove semantics aligned with server events.
 
 ## Open Questions
-1. **Preset payload shape** – Should the handshake expose full visibility maps or only metadata, and how do large preset definitions impact initial sync performance?
-2. **Authentication UX** – How is the bearer token provisioned/rotated inside OBS, and should the compositor expose additional diagnostics when auth fails?
-3. **Revision contract** – Are presets expected to advance the global revision counter, and do clients require per-preset revisioning for conflict resolution?
-4. **Layer creation lifecycle** – Does the plugin ever authoritatively create/delete layers, or should those operations remain server-driven with user confirmation flows?
-5. **Transport fallback** – When the compositor falls back to WebRTC, how are SDP credentials surfaced over this control channel?
-6. **Preset application feedback** – Beyond the current change list, should the server emit explicit success/failure codes for partial applications or validation errors?
+1. **Transport fallback** – When the compositor falls back to WebRTC, how are SDP credentials surfaced over this control channel?
+
+## Resolved Decisions
+- **Preset payload shape** – The initial `welcome` handshake continues to advertise preset metadata (id, name, tags). Full preset visibility maps are requested lazily via a follow-up fetch so that devices carrying large preset definitions do not stall the first sync. This enables our first end-to-end test to validate handshake performance independent of preset bulk.
+- **Authentication UX** – The compositor issues a random bearer token on demand; OBS stores it until the user explicitly regenerates it. Authentication failures surface in compositor logs/diagnostics rather than user-facing OBS prompts for this iteration.
+- **Revision contract** – Any message exchanged between the plugin and compositor increments the global revision counter, and presets do not require their own per-preset revisioning. Preset selection and mutation remain compositor responsibilities, while OBS only toggles layer visibility.
+- **Layer creation lifecycle** – Layer creation and deletion stay server-driven. The OBS plugin mirrors the compositor’s declared layers and only exposes visibility toggles.
+- **Preset application feedback** – Success or validation failures are emitted to stdout/logs for debugging, but the OBS client only receives the resulting state diff.
 
 ## Remaining Tasks
 
