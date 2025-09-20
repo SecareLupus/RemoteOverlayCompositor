@@ -74,6 +74,9 @@ std::optional<ControlOutboundMessage> parse_control_message(std::string_view pay
       welcome.device_id = json.value("deviceId", std::string{});
       welcome.revision = json.value("rev", static_cast<std::uint64_t>(0));
       welcome.heartbeat_seconds = json.value("heartbeatSec", static_cast<std::uint32_t>(0));
+      // TODO: Capture compositor-provided WebRTC negotiation blobs (SDP, ICE)
+      //       alongside the welcome envelope once those fields are defined so
+      //       the plugin can configure the browser-source fallback automatically.
       if (json.contains("layers")) {
         for (const auto& layer_json : json.at("layers")) {
           welcome.layers.push_back(parse_layer(layer_json));
@@ -127,20 +130,6 @@ std::optional<ControlOutboundMessage> parse_control_message(std::string_view pay
       PresetRemovedNotice notice;
       notice.preset_id = json.at("presetId").get<std::string>();
       notice.revision = json.value("rev", static_cast<std::uint64_t>(0));
-      return notice;
-    }
-    if (op == "preset.applied") {
-      PresetAppliedNotice notice;
-      notice.preset_id = json.at("presetId").get<std::string>();
-      if (json.contains("changes")) {
-        for (const auto& change_json : json.at("changes")) {
-          PresetAppliedChange change;
-          change.layer_id = change_json.at("layerId").get<std::string>();
-          change.visible = change_json.value("visible", false);
-          change.revision = change_json.value("rev", static_cast<std::uint64_t>(0));
-          notice.changes.push_back(change);
-        }
-      }
       return notice;
     }
     if (op == "error") {

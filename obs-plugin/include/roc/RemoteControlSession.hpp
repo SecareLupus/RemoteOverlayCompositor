@@ -24,6 +24,10 @@ struct ConnectionConfig {
   std::optional<std::string> auth_token;
 };
 
+// TODO: Persist and expose a simple bearer-token lifecycle (generate, revoke,
+//       replace) so users can refresh credentials from OBS without manual file
+//       edits.
+
 class RemoteControlSession {
  public:
   RemoteControlSession(std::shared_ptr<PluginCoordinator> coordinator,
@@ -51,7 +55,6 @@ class RemoteControlSession {
   void handle_bulk_state(const LayerBulkState& bulk);
   void handle_preset_upsert(const PresetUpsertNotice& notice);
   void handle_preset_removed(const PresetRemovedNotice& notice);
-  void handle_preset_applied(const PresetAppliedNotice& notice);
   void handle_error(const ErrorNotice& notice);
   void send_layer_visibility(const std::string& layer_id, bool visible);
   void log(const std::string& line);

@@ -76,17 +76,6 @@ struct PresetRemovedNotice {
   std::uint64_t revision = 0;
 };
 
-struct PresetAppliedChange {
-  std::string layer_id;
-  bool visible = false;
-  std::uint64_t revision = 0;
-};
-
-struct PresetAppliedNotice {
-  std::string preset_id;
-  std::vector<PresetAppliedChange> changes;
-};
-
 struct ErrorNotice {
   std::string code;
   std::string message;
@@ -101,7 +90,6 @@ using ControlOutboundMessage = std::variant<WelcomeEnvelope,
                                             LayerBulkState,
                                             PresetUpsertNotice,
                                             PresetRemovedNotice,
-                                            PresetAppliedNotice,
                                             ErrorNotice>;
 
 std::string serialize_hello(const HelloMessage& hello);
